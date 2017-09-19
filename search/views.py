@@ -26,7 +26,7 @@ def json_search(request):
     if request.GET.get('base64') == '1':
         keyword = keyword.decode('base64').decode('utf8')
     try:
-        res = Hash.objects.search(keyword, int(start), int(count), category, sort)
+        res = list(Hash.objects.search(keyword, int(start), int(count), category, sort))
     except:
         return HttpResponse('Sorry, an error has occurred: %s' % sys.exc_info()[1])
     return JsonResponse(res)
