@@ -17,8 +17,10 @@ from search.models import RecKeywords, Hash
 from datetime import date, datetime
 
 
-class DatetimeEncoder(json.JSONEncoder):
+class MyEncoder(json.JSONEncoder):
     def default(self, obj):
+        # if isinstance(obj, datetime.datetime):
+        #     return int(mktime(obj.timetuple()))
         if isinstance(obj, datetime):
             return obj.strftime('%Y-%m-%d %H:%M:%S')
         elif isinstance(obj, date):
@@ -191,7 +193,7 @@ def jsonsearch(request, keyword=None, p=None):
         v = workers.metautils.get_label_by_crc32(x['category'])
         d['cats_navs'].append({'value': v, 'name': workers.metautils.get_label(v), 'num': x['num']})
 
-    return HttpResponse(json.dumps(d, cls=DatetimeEncoder))
+    return HttpResponse(json.dumps(d, cls=MyEncoder))
 
 
 def hash_old(request, h):
