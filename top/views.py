@@ -1,7 +1,8 @@
 from django.shortcuts import render
 from django.views.decorators.cache import cache_page
-from django.http.response import HttpResponse
+from django.http.response import HttpResponse, JsonResponse
 from .models import KeywordLog, HashLog
+
 
 # Create your views here.
 
@@ -13,6 +14,15 @@ def index(request):
         'top_hash_daily': HashLog.objects.top_daily(),
     }
     return render(request, 'top.html', d)
+
+
+@cache_page(600)
+def jsonindex(request):
+    d = {
+        'top_keyword_daily': KeywordLog.objects.top_daily(),
+        'top_hash_daily': HashLog.objects.top_daily(),
+    }
+    return JsonResponse(d)
 
 
 def json_log(request):
@@ -30,4 +40,3 @@ def json_log(request):
             return HttpResponse('invalid')
         HashLog.objects.create(hash_id=hash_id, ip=ip)
     return HttpResponse('ok')
-

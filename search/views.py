@@ -45,6 +45,7 @@ def json_info(request):
     return JsonResponse(j)
 
 
+# 总数 增长数
 @never_cache
 def json_status(request):
     d = {}
