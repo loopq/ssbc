@@ -16,7 +16,6 @@ from search.models import Hash, FileList, StatusReport, RecKeywords, ContactEmai
 
 @cache_page(600)
 def json_search(request):
-    result = {}
     keyword = request.GET.get('keyword')
     if not keyword:
         return HttpResponse('keyword needed.')
@@ -27,10 +26,10 @@ def json_search(request):
     if request.GET.get('base64') == '1':
         keyword = keyword.decode('base64').decode('utf8')
     try:
-        result['res'] = list(Hash.objects.search(keyword, int(start), int(count), category, sort))
+        res = Hash.objects.search(keyword, int(start), int(count), category, sort)
     except:
         return HttpResponse('Sorry, an error has occurred: %s' % sys.exc_info()[1])
-    return JsonResponse(result)
+    return JsonResponse(res)
 
 
 @never_cache

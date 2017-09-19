@@ -179,7 +179,7 @@ def jsonsearch(request, keyword=None, p=None):
         v = workers.metautils.get_label_by_crc32(x['category'])
         d['cats_navs'].append({'value': v, 'name': workers.metautils.get_label(v), 'num': x['num']})
 
-    return JsonResponse(d)
+    return HttpResponse(json.dumps(d))
 
 
 
