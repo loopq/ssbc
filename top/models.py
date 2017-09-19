@@ -1,3 +1,4 @@
+#coding: utf8
 import datetime
 from django.db.models.aggregates import Count
 from django.db import models
