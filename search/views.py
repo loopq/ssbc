@@ -1,4 +1,4 @@
-#coding: utf8
+# coding: utf8
 import re
 import hashlib, hmac
 import sys
@@ -16,6 +16,7 @@ from search.models import Hash, FileList, StatusReport, RecKeywords, ContactEmai
 
 @cache_page(600)
 def json_search(request):
+    result = {}
     keyword = request.GET.get('keyword')
     if not keyword:
         return HttpResponse('keyword needed.')
@@ -26,10 +27,10 @@ def json_search(request):
     if request.GET.get('base64') == '1':
         keyword = keyword.decode('base64').decode('utf8')
     try:
-        res = list(Hash.objects.search(keyword, int(start), int(count), category, sort))
+        result['res'] = list(Hash.objects.search(keyword, int(start), int(count), category, sort))
     except:
         return HttpResponse('Sorry, an error has occurred: %s' % sys.exc_info()[1])
-    return JsonResponse(res)
+    return JsonResponse(result)
 
 
 @never_cache
@@ -37,7 +38,7 @@ def json_info(request):
     try:
         hashes = request.GET['hashes']
         res = Hash.objects.list_with_files(hashes.split('-'))
-        #if request.META.get('HTTP_CF_IPCOUNTRY') == 'US':
+        # if request.META.get('HTTP_CF_IPCOUNTRY') == 'US':
         #    raise Exception('403')
         j = {'result': res, 'ret': 0}
     except:
@@ -73,9 +74,9 @@ def json_helper(request):
 
 def verify(api_key, token, timestamp, signature):
     return signature == hmac.new(
-            key=api_key,
-            msg='{}{}'.format(timestamp, token),
-            digestmod=hashlib.sha256).hexdigest()
+        key=api_key,
+        msg='{}{}'.format(timestamp, token),
+        digestmod=hashlib.sha256).hexdigest()
 
 
 @never_cache
@@ -95,11 +96,8 @@ def post_complaint(request):
             if not Extra.objects.filter(hash_id=int(pk)).first():
                 Extra.objects.create(hash_id=int(pk), status='reviewing')
     ContactEmail.objects.create(subject=request.POST['subject'],
-        mail_from=request.POST['from'],
-        text=request.POST['stripped-text'],
-        is_complaint=is_complaint
-    )
+                                mail_from=request.POST['from'],
+                                text=request.POST['stripped-text'],
+                                is_complaint=is_complaint
+                                )
     return HttpResponse('Success')
-
-
-
