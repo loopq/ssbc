@@ -1,210 +1,102 @@
 # coding: utf8
-import json
 import re
+import hashlib, hmac
 import sys
-import urllib
+import traceback
 
-from django.http import Http404
-from django.http.response import HttpResponse, JsonResponse
-from django.core.urlresolvers import reverse
+from django.views.decorators.csrf import csrf_exempt
+from django.shortcuts import render
 from django.views.decorators.cache import cache_page
-from django.shortcuts import render, redirect, get_object_or_404
+from django.views.decorators.cache import never_cache
+from django.http import JsonResponse, HttpResponse
 
-from lib import politics
-import workers.metautils
-from top.models import KeywordLog
-from search.models import RecKeywords, Hash
-from datetime import date, datetime
-
-
-class MyEncoder(json.JSONEncoder):
-    def default(self, obj):
-        # if isinstance(obj, datetime.datetime):
-        #     return int(mktime(obj.timetuple()))
-        if isinstance(obj, datetime):
-            return obj.strftime('%Y-%m-%d %H:%M:%S')
-        elif isinstance(obj, date):
-            return obj.strftime('%Y-%m-%d')
-        else:
-            return json.JSONEncoder.default(self, obj)
-
-
-re_punctuations = re.compile(
-    u"。|，|,|！|…|!|《|》|<|>|\"|'|:|：|？|\?|、|\||“|”|‘|’|；|—|（|）|·|\(|\)|　|\.|【|】|『|』|@|&|%|\^|\*|\+|\||<|>|~|`|\[|\]")
+from django.conf import settings
+from search.models import Hash, FileList, StatusReport, RecKeywords, ContactEmail, Extra
 
 
 @cache_page(600)
-def index(request):
-    reclist = RecKeywords.objects.order_by('-order')
-    return render(request, 'index.html', {'reclist': reclist})
-
-
-# 详情
-@cache_page(3600 * 2)
-def hash(request, h):
-    try:
-        res = Hash.objects.list_with_files([h])
-        j = res[0]
-    except Exception as e:
-        raise Http404(str(e))
-    if j.get('extra') and j['extra']['status'] == 'deleted':
-        raise Http404('I am sorry :( The hash is deleted at %s.' % j['extra']['update_time'])
-    d = {'info': j}
-    d['keywords'] = list(set(re_punctuations.sub(u' ', d['info']['name']).split()))
-    if 'files' in d['info']:
-        d['info']['files'] = [y for y in d['info']['files'] if not y['path'].startswith(u'_')]
-        d['info']['files'].sort(key=lambda x: x['length'], reverse=True)
-    d['related'] = Hash.objects.list_related(d['info']['id'], d['info']['name'])
-    return render(request, 'info.html', d)
-
-
-@cache_page(3600 * 2)
-def jsonhash(request, h):
-    try:
-        res = Hash.objects.list_with_files([h])
-        j = res[0]
-    except Exception as e:
-        raise Http404(str(e))
-    if j.get('extra') and j['extra']['status'] == 'deleted':
-        raise Http404('I am sorry :( The hash is deleted at %s.' % j['extra']['update_time'])
-    d = {'info': j}
-    d['keywords'] = list(set(re_punctuations.sub(u' ', d['info']['name']).split()))
-    if 'files' in d['info']:
-        d['info']['files'] = [y for y in d['info']['files'] if not y['path'].startswith(u'_')]
-        d['info']['files'].sort(key=lambda x: x['length'], reverse=True)
-    d['related'] = Hash.objects.list_related(d['info']['id'], d['info']['name'])
-    return HttpResponse(json.dumps(d))
-
-
-@cache_page(1800)
-def search(request, keyword=None, p=None):
+def json_search(request):
+    keyword = request.GET.get('keyword')
     if not keyword:
-        return redirect('/')
-    if politics.is_sensitive(keyword):
-        return redirect('/?' + urllib.urlencode({'notallow': keyword.encode('utf8')}))
-    d = {'keyword': keyword}
-    d['words'] = list(set(re_punctuations.sub(u' ', d['keyword']).split()))
+        return HttpResponse('keyword needed.')
+    start = request.GET.get('start', 0)
+    count = request.GET.get('count', 10)
+    sort = request.GET.get('sort', '')
+    category = request.GET.get('category', '')
+    if request.GET.get('base64') == '1':
+        keyword = keyword.decode('base64').decode('utf8')
     try:
-        d['p'] = int(p or request.GET.get('p'))
-    except:
-        d['p'] = 1
-    d['category'] = request.GET.get('c', '')
-    d['sort'] = request.GET.get('s', 'create_time')
-    d['ps'] = 10
-    d['offset'] = d['ps'] * (d['p'] - 1)
-    try:
-        res = Hash.objects.search(keyword, d['offset'], d['ps'], d['category'], d['sort'])
+        res = Hash.objects.search(keyword, int(start), int(count), category, sort)
     except:
         return HttpResponse('Sorry, an error has occurred: %s' % sys.exc_info()[1])
-
-    d.update(res)
-    # Fill info
-    ids = [str(x['id']) for x in d['result']['items']]
-    if ids:
-        items = Hash.objects.list_with_files(ids)
-        for x in d['result']['items']:
-            for y in items:
-                if x['id'] == y['id']:
-                    x.update(y)
-                    x['maybe_fake'] = x['name'].endswith(u'.rar') or u'BTtiantang.com' in x['name'] or u'liangzijie' in \
-                                                                                                       x[
-                                                                                                           'name'] or u'720p高清视频' in \
-                                                                                                                      x[
-                                                                                                                          'name']
-                    if 'files' in x:
-                        x['files'] = [z for z in x['files'] if not z['path'].startswith(u'_')][:5]
-                        x['files'].sort(key=lambda x: x['length'], reverse=True)
-                    else:
-                        x['files'] = [{'path': x['name'], 'length': x['length']}]
-    # pagination
-    w = 10
-    total = int(d['result']['meta']['total_found'])
-    d['page_max'] = total / d['ps'] if total % d['ps'] == 0 else total / d['ps'] + 1
-    d['prev_pages'] = range(max(d['p'] - w + min(int(w / 2), d['page_max'] - d['p']), 1), d['p'])
-    d['next_pages'] = range(d['p'] + 1, int(min(d['page_max'] + 1, max(d['p'] - w / 2, 1) + w)))
-    d['sort_navs'] = [
-        {'name': 'By Time', 'value': 'create_time'},
-        {'name': 'By Size', 'value': 'length'},
-        {'name': 'By Relavance', 'value': 'relavance'},
-    ]
-    d['cats_navs'] = [{'name': 'All', 'num': total, 'value': ''}]
-    d['keyword_logs'] = KeywordLog.objects
-    for x in d['cats']['items']:
-        v = workers.metautils.get_label_by_crc32(x['category'])
-        d['cats_navs'].append({'value': v, 'name': workers.metautils.get_label(v), 'num': x['num']})
-
-    return render(request, 'list.html', d)
+    return JsonResponse(res)
 
 
-@cache_page(1800)
-def jsonsearch(request, keyword=None, p=None):
-    if not keyword:
-        return redirect('/')
-    if politics.is_sensitive(keyword):
-        return redirect('/?' + urllib.urlencode({'notallow': keyword.encode('utf8')}))
-    d = {'keyword': keyword}
-    d['words'] = list(set(re_punctuations.sub(u' ', d['keyword']).split()))
+@never_cache
+def json_info(request):
     try:
-        d['p'] = int(p or request.GET.get('p'))
+        hashes = request.GET['hashes']
+        res = Hash.objects.list_with_files(hashes.split('-'))
+        # if request.META.get('HTTP_CF_IPCOUNTRY') == 'US':
+        #    raise Exception('403')
+        j = {'result': res, 'ret': 0}
     except:
-        d['p'] = 1
-    d['category'] = request.GET.get('c', '')
-    d['sort'] = request.GET.get('s', 'create_time')
-    d['ps'] = 10
-    d['offset'] = d['ps'] * (d['p'] - 1)
-    try:
-        res = Hash.objects.search(keyword, d['offset'], d['ps'], d['category'], d['sort'])
-    except:
-        return HttpResponse('Sorry, an error has occurred: %s' % sys.exc_info()[1])
-
-    d.update(res)
-    # Fill info
-    ids = [str(x['id']) for x in d['result']['items']]
-    if ids:
-        items = Hash.objects.list_with_files(ids)
-        for x in d['result']['items']:
-            for y in items:
-                if x['id'] == y['id']:
-                    x.update(y)
-                    x['maybe_fake'] = x['name'].endswith(u'.rar') or u'BTtiantang.com' in x['name'] or u'liangzijie' in \
-                                                                                                       x[
-                                                                                                           'name'] or u'720p高清视频' in \
-                                                                                                                      x[
-                                                                                                                          'name']
-                    if 'files' in x:
-                        x['files'] = [z for z in x['files'] if not z['path'].startswith(u'_')][:5]
-                        x['files'].sort(key=lambda x: x['length'], reverse=True)
-                    else:
-                        x['files'] = [{'path': x['name'], 'length': x['length']}]
-    # pagination
-    w = 10
-    total = int(d['result']['meta']['total_found'])
-    d['page_max'] = total / d['ps'] if total % d['ps'] == 0 else total / d['ps'] + 1
-    d['prev_pages'] = range(max(d['p'] - w + min(int(w / 2), d['page_max'] - d['p']), 1), d['p'])
-    d['next_pages'] = range(d['p'] + 1, int(min(d['page_max'] + 1, max(d['p'] - w / 2, 1) + w)))
-    d['sort_navs'] = [
-        {'name': 'By Time', 'value': 'create_time'},
-        {'name': 'By Size', 'value': 'length'},
-        {'name': 'By Relavance', 'value': 'relavance'},
-    ]
-    d['cats_navs'] = [{'name': 'All', 'num': total, 'value': ''}]
-    # d['keyword_logs'] = KeywordLog.objects
-    for x in d['cats']['items']:
-        v = workers.metautils.get_label_by_crc32(x['category'])
-        d['cats_navs'].append({'value': v, 'name': workers.metautils.get_label(v), 'num': x['num']})
-
-    return HttpResponse(json.dumps(d, cls=MyEncoder))
+        j = {'ret': 1, 'error': traceback.format_exc()}
+    return JsonResponse(j)
 
 
-def hash_old(request, h):
-    item = get_object_or_404(Hash, info_hash=h)
-    return redirect(reverse('hash', args=(item.id,)), permanent=True)
+# 总数 增长数
+@never_cache
+def json_status(request):
+    d = {}
+    d['hash_total'] = Hash.objects.count()
+    reports = StatusReport.objects.order_by('-date')[:30]
+    d['reports'] = list(reports.values())
+    print request.META
+    return JsonResponse(d)
 
 
-def search_old(request, kw, p):
-    return redirect('list', kw, p)
+@never_cache
+def json_helper(request):
+    kwlist = list(RecKeywords.objects.order_by('-order').values())
+    j = {
+        'ret': 0,
+        'hot_keywords': kwlist,
+        'tips': u'手撕包菜搜索助手1.2  <a href="http://pan.baidu.com/">登录百度云</a>，即可使用云播放在线观看',
+        'default_option': True,
+        'default_url': settings.HOME_URL,
+        'update_url': '',
+        'version': '',
+    }
+    return JsonResponse(j)
 
 
-@cache_page(3600 * 2)
-def howto(request):
-    return render(request, 'howto.html', {})
+def verify(api_key, token, timestamp, signature):
+    return signature == hmac.new(
+        key=api_key,
+        msg='{}{}'.format(timestamp, token),
+        digestmod=hashlib.sha256).hexdigest()
+
+
+@never_cache
+@csrf_exempt
+def post_complaint(request):
+    text = request.POST['stripped-text']
+    token = request.POST['token']
+    timestamp = request.POST['timestamp']
+    signature = request.POST['signature']
+    if not verify(settings.MAILGUN_API_KEY, token, timestamp, signature):
+        return HttpResponse('Signature failed.')
+    is_complaint = False
+    if u'opyright' in text or u'版权' in text:
+        is_complaint = True
+        urls = re.findall(ur'/info/(\d+)', text)
+        for pk in urls:
+            if not Extra.objects.filter(hash_id=int(pk)).first():
+                Extra.objects.create(hash_id=int(pk), status='reviewing')
+    ContactEmail.objects.create(subject=request.POST['subject'],
+                                mail_from=request.POST['from'],
+                                text=request.POST['stripped-text'],
+                                is_complaint=is_complaint
+                                )
+    return HttpResponse('Success')
