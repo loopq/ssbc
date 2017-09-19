@@ -73,7 +73,7 @@ def jsonhash(request, h):
         d['info']['files'] = [y for y in d['info']['files'] if not y['path'].startswith(u'_')]
         d['info']['files'].sort(key=lambda x: x['length'], reverse=True)
     d['related'] = Hash.objects.list_related(d['info']['id'], d['info']['name'])
-    return HttpResponse(json.dumps(d))
+    return HttpResponse(json.dumps(d, cls=MyEncoder))
 
 
 @cache_page(1800)
