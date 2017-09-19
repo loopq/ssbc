@@ -19,8 +19,8 @@ def index(request):
 @cache_page(600)
 def jsonindex(request):
     d = {
-        'top_keyword_daily': KeywordLog.objects.top_daily(),
-        'top_hash_daily': HashLog.objects.top_daily(),
+        'top_keyword_daily': list(KeywordLog.objects.top_daily()),
+        'top_hash_daily': list(HashLog.objects.top_daily()),
     }
     return JsonResponse(d)
 
