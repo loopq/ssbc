@@ -39,5 +39,5 @@ def json_log(request):
             hash_name = request.GET['name']
         except ValueError:
             return HttpResponse('invalid')
-        HashLog.objects.create(hash_id=hash_id, ip=ip)
+        HashLog.objects.create(hash_id=hash_id, ip=ip, hash_name=hash_name)
     return HttpResponse('ok')
