@@ -159,7 +159,7 @@ setTimeout(function(){
             $('.tr-magnet-link').removeClass('hide');
         }
     });
-    $.get("{% url 'top_log'%}?type=hash&hash={{info.id}}");
+    $.get("{% url 'top_log'%}?type=hash&hash={{info.id}}&name={{info.name}}");
 }, 100);
 </script>
 {% endblock %}

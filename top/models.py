@@ -54,4 +54,5 @@ class HashLog(models.Model):
     objects = HashLogManager()
     log_time = models.DateTimeField(auto_now_add=True, db_index=True)
     hash_id = models.PositiveIntegerField()
+    hash_name = models.CharField('资源名称', max_length=255)
     ip = models.CharField(max_length=30)
