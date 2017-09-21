@@ -9,7 +9,6 @@ from django.shortcuts import render
 from django.views.decorators.cache import cache_page
 from django.views.decorators.cache import never_cache
 from django.http import JsonResponse, HttpResponse
-
 from django.conf import settings
 from search.models import Hash, FileList, StatusReport, RecKeywords, ContactEmail, Extra
 

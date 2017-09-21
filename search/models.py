@@ -1,4 +1,4 @@
-#coding: utf8
+# coding: utf8
 import json
 import re
 import traceback
@@ -9,8 +9,8 @@ from django.db import models
 import MySQLdb as mdb
 import MySQLdb.cursors
 
-
-search_conn = mdb.connect('127.0.0.1', 'root', '', '', port=9306, charset='utf8', cursorclass=MySQLdb.cursors.DictCursor)
+search_conn = mdb.connect('127.0.0.1', 'root', '', '', port=9306, charset='utf8',
+                          cursorclass=MySQLdb.cursors.DictCursor)
 search_conn.ping(True)
 re_punctuations = re.compile(
     ur"。|，|,|！|…|!|《|》|<|>|\"|'|:|：|？|\?|、|\||“|”|‘|’|；|\\|—|_|=|（|）|·|\(|\)|　|\.|【|】|『|』|@|&|%|\^|\*|\+|\||<|>|~|`|\[|\]")
@@ -18,6 +18,7 @@ re_punctuations = re.compile(
 
 def escape_string(string):
     return re.sub(r"(['`=\(\)|\-!@~\"&/\\\^\$])", r"\\\1", string)
+
 
 def split_words(string):
     string = re_punctuations.sub(u' ', string).replace(u'-', u' ')
@@ -42,13 +43,15 @@ class HashManager(models.Manager):
             values.append(escape_string(keyword))
         if category:
             conds.append('category=%s')
-            values.append(binascii.crc32(category)&0xFFFFFFFFL)
+            values.append(binascii.crc32(category) & 0xFFFFFFFFL)
         if conds:
             sql += ' WHERE ' + ' AND '.join(conds)
         if sort == 'create_time':
             sql += ' ORDER BY create_time DESC '
         elif sort == 'length':
             sql += ' ORDER BY length DESC '
+        elif sort == 'requests':
+            sql += ' ORDER BY requests DESC '
         sql += '''
             LIMIT %s,%s
             OPTION max_matches=1000, max_query_time=200
@@ -65,7 +68,7 @@ class HashManager(models.Manager):
         sql += ''' GROUP BY category OPTION max_query_time=200'''
         search_cursor.execute(sql, values)
         cats = list(search_cursor.fetchall())
-        
+
         res = {
             'result': {
                 'items': items,
@@ -191,4 +194,9 @@ class ContactEmail(models.Model):
     is_complaint = models.BooleanField(default=False)
 
 
-
+class Version(models.Model):
+    client = models.CharField('平台', max_length=20)
+    version = models.FloatField('版本号', max_length=20)
+    content = models.CharField('描述', max_length=255)
+    url = models.CharField('下载地址', max_length=255)
+    create_time = models.DateTimeField('创建时间', auto_now=True)

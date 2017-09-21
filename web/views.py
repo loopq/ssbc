@@ -15,6 +15,8 @@ import workers.metautils
 from top.models import KeywordLog
 from search.models import RecKeywords, Hash
 from datetime import date, datetime
+from top.views import json_log
+from search.models import Version
 
 
 class MyEncoder(json.JSONEncoder):
@@ -80,7 +82,7 @@ def jsonhash(request, h):
         d['info']['files'] = [y for y in d['info']['files'] if not y['path'].startswith(u'_')]
         d['info']['files'].sort(key=lambda x: x['length'], reverse=True)
     d['related'] = list(Hash.objects.list_related(d['info']['id'], d['info']['name']))
-
+    json_log('json_log', hash_id=d['info']['id'], hash_name=d['info']['name'])
     return returnResult('success', 'success', d)
 
 
@@ -224,3 +226,9 @@ def returnResult(status, msg, data):
     result['msg'] = msg
     result['data'] = data
     return HttpResponse(json.dumps(result, cls=MyEncoder))
+
+
+def get_version(requset):
+    version = Version.objects.all()[:1]
+    d = {'version': version}
+    return returnResult('success', 'success', version)

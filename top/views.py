@@ -45,6 +45,13 @@ def json_log(request):
     return HttpResponse('ok')
 
 
+def json_log(log_type, keyword='', hash_id='', hash_name=''):
+    if log_type == 'keyword':
+        KeywordLog.objects.create(keyword=keyword, ip='')
+    elif log_type == 'hash':
+        HashLog.objects.create(hash_id=hash_id, ip='', hash_name=hash_name)
+
+
 def returnResult(status, msg, data):
     result = {}
     result['status'] = status

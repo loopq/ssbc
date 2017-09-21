@@ -1,5 +1,5 @@
 from django.contrib import admin
-from search.models import Hash, FileList, StatusReport, RecKeywords, Extra, ContactEmail
+from search.models import Hash, FileList, StatusReport, RecKeywords, Extra, ContactEmail,Version
 
 
 # Register your models here.
@@ -26,3 +26,4 @@ admin.site.register(FileList)
 admin.site.register(ContactEmail, ContactEmailAdmin)
 admin.site.register(StatusReport)
 admin.site.register(RecKeywords)
+admin.site.register(Version)
