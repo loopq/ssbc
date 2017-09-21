@@ -1,3 +1,5 @@
+import json
+
 from django.shortcuts import render
 from django.views.decorators.cache import cache_page
 from django.http.response import HttpResponse, JsonResponse
@@ -22,7 +24,7 @@ def jsonindex(request):
         'top_keyword_daily': list(KeywordLog.objects.top_daily()),
         'top_hash_daily': list(HashLog.objects.top_daily()),
     }
-    return JsonResponse(d)
+    return returnResult('success', 'success', d)
 
 
 def json_log(request):
@@ -41,3 +43,11 @@ def json_log(request):
             return HttpResponse('invalid')
         HashLog.objects.create(hash_id=hash_id, ip=ip, hash_name=hash_name)
     return HttpResponse('ok')
+
+
+def returnResult(status, msg, data):
+    result = {}
+    result['status'] = status
+    result['msg'] = msg
+    result['data'] = data
+    return HttpResponse(json.dumps(result))

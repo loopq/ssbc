@@ -60,20 +60,28 @@ def hash(request, h):
 
 @cache_page(3600 * 2)
 def jsonhash(request, h):
+    app_res = {}
     try:
         res = Hash.objects.list_with_files([h])
         j = res[0]
     except Exception as e:
-        raise Http404(str(e))
+        app_res['status'] = 'error'
+        app_res['msg'] = 'have error'
+        app_res['data'] = ''
+        return returnResult('error', 'have error', '')
     if j.get('extra') and j['extra']['status'] == 'deleted':
-        raise Http404('I am sorry :( The hash is deleted at %s.' % j['extra']['update_time'])
+        app_res['status'] = 'error'
+        app_res['msg'] = 'have error'
+        app_res['data'] = ''
+        return returnResult('error', 'have error', '')
     d = {'info': j}
     d['keywords'] = list(set(re_punctuations.sub(u' ', d['info']['name']).split()))
     if 'files' in d['info']:
         d['info']['files'] = [y for y in d['info']['files'] if not y['path'].startswith(u'_')]
         d['info']['files'].sort(key=lambda x: x['length'], reverse=True)
     d['related'] = list(Hash.objects.list_related(d['info']['id'], d['info']['name']))
-    return HttpResponse(json.dumps(d, cls=MyEncoder))
+
+    return returnResult('success', 'success', d)
 
 
 @cache_page(1800)
@@ -139,9 +147,9 @@ def search(request, keyword=None, p=None):
 @cache_page(1800)
 def jsonsearch(request, keyword=None, p=None):
     if not keyword:
-        return redirect('/')
+        return returnResult('error', 'need keyword', '')
     if politics.is_sensitive(keyword):
-        return redirect('/?' + urllib.urlencode({'notallow': keyword.encode('utf8')}))
+        return returnResult('error', 'is_sensitive', '')
     d = {'keyword': keyword}
     d['words'] = list(set(re_punctuations.sub(u' ', d['keyword']).split()))
     try:
@@ -155,7 +163,7 @@ def jsonsearch(request, keyword=None, p=None):
     try:
         res = Hash.objects.search(keyword, d['offset'], d['ps'], d['category'], d['sort'])
     except:
-        return HttpResponse('Sorry, an error has occurred: %s' % sys.exc_info()[1])
+        return returnResult('error', 'have error', '')
 
     d.update(res)
     # Fill info
@@ -193,7 +201,7 @@ def jsonsearch(request, keyword=None, p=None):
         v = workers.metautils.get_label_by_crc32(x['category'])
         d['cats_navs'].append({'value': v, 'name': workers.metautils.get_label(v), 'num': x['num']})
 
-    return HttpResponse(json.dumps(d, cls=MyEncoder))
+    return returnResult('success', 'success', d)
 
 
 def hash_old(request, h):
@@ -208,3 +216,11 @@ def search_old(request, kw, p):
 @cache_page(3600 * 2)
 def howto(request):
     return render(request, 'howto.html', {})
+
+
+def returnResult(status, msg, data):
+    result = {}
+    result['status'] = status
+    result['msg'] = msg
+    result['data'] = data
+    return HttpResponse(json.dumps(result, cls=MyEncoder))
