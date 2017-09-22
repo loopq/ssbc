@@ -229,6 +229,6 @@ def returnResult(status, msg, data):
 
 
 def get_version(requset):
-    version = Version.objects.all()[:1]
-    d = {'version': version}
-    return returnResult('success', 'success', version)
+    version = Version.objects.order_by('-version')[:1]
+    d = {'version': list(version.values())}
+    return returnResult('success', 'success', d)
