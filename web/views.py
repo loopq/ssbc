@@ -15,7 +15,7 @@ import workers.metautils
 from top.models import KeywordLog
 from search.models import RecKeywords, Hash
 from datetime import date, datetime
-from top.views import json_log
+from top.views import json_into_db
 from search.models import Version
 
 
@@ -82,7 +82,7 @@ def jsonhash(request, h):
         d['info']['files'] = [y for y in d['info']['files'] if not y['path'].startswith(u'_')]
         d['info']['files'].sort(key=lambda x: x['length'], reverse=True)
     d['related'] = list(Hash.objects.list_related(d['info']['id'], d['info']['name']))
-    json_log('json_log', hash_id=d['info']['id'], hash_name=d['info']['name'])
+    json_into_db('hash', hash_id=d['info']['id'], hash_name=d['info']['name'])
     return returnResult('success', 'success', d)
 
 
@@ -202,7 +202,7 @@ def jsonsearch(request, keyword=None, p=None):
     for x in d['cats']['items']:
         v = workers.metautils.get_label_by_crc32(x['category'])
         d['cats_navs'].append({'value': v, 'name': workers.metautils.get_label(v), 'num': x['num']})
-
+    json_into_db('keyword', keyword=d['keyword'])
     return returnResult('success', 'success', d)
 
 

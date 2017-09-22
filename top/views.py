@@ -45,7 +45,7 @@ def json_log(request):
     return HttpResponse('ok')
 
 
-def json_log(log_type, keyword='', hash_id='', hash_name=''):
+def json_into_db(log_type, keyword='', hash_id='', hash_name=''):
     if log_type == 'keyword':
         KeywordLog.objects.create(keyword=keyword, ip='')
     elif log_type == 'hash':
