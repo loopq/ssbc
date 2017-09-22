@@ -50,6 +50,8 @@ class HashManager(models.Manager):
             sql += ' ORDER BY create_time DESC '
         elif sort == 'length':
             sql += ' ORDER BY length DESC '
+        elif sort == 'requests':
+            sql += ' ORDER BY requests DESC'
         sql += '''
             LIMIT %s,%s
             OPTION max_matches=1000, max_query_time=200
