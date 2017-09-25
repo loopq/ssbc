@@ -34,6 +34,9 @@ class KeywordLog(models.Model):
     keyword = models.CharField(max_length=100)
     ip = models.CharField(max_length=30)
 
+    def __unicode__(self):
+        return self.keyword
+
 
 class HashLogManager(models.Manager):
     def top_hourly(self):
@@ -57,3 +60,6 @@ class HashLog(models.Model):
     hash_id = models.PositiveIntegerField()
     hash_name = models.CharField('资源名称', max_length=255)
     ip = models.CharField(max_length=30)
+
+    def __unicode__(self):
+        return self.hash_name
