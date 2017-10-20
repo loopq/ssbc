@@ -48,7 +48,7 @@ class HashLogManager(models.Manager):
 
     def top_daily(self):
         now = timezone.now()
-        time_begin = now - datetime.timedelta(days=1)
+        time_begin = now - datetime.timedelta(days=30)
         cursor = self.filter(log_time__gte=time_begin).values('hash_id', 'hash_name').annotate(
             pv=Count('ip', distinct=True)).order_by('-pv')
         return cursor
