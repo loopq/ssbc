@@ -1,5 +1,5 @@
 import json
-
+import random
 from django.shortcuts import render
 from django.views.decorators.cache import cache_page
 from django.http.response import HttpResponse, JsonResponse
@@ -7,7 +7,6 @@ from .models import KeywordLog, HashLog
 
 
 # Create your views here.
-
 
 @cache_page(600)
 def index(request):
@@ -21,8 +20,8 @@ def index(request):
 @cache_page(600)
 def jsonindex(request):
     d = {
-        'top_keyword_daily': list(KeywordLog.objects.top_daily()),
-        'top_hash_daily': list(HashLog.objects.top_daily()),
+        'top_keyword_daily': list(KeywordLog.objects.top_daily())[:50],
+        'top_hash_daily': list(HashLog.objects.top_daily())[:50],
     }
     return returnResult('success', 'success', d)
 
@@ -46,10 +45,11 @@ def json_log(request):
 
 
 def json_into_db(log_type, keyword='', hash_id='', hash_name=''):
+    ip = random.randint(0, 1000000)
     if log_type == 'keyword':
-        KeywordLog.objects.create(keyword=keyword, ip='')
+        KeywordLog.objects.create(keyword=keyword, ip=ip)
     elif log_type == 'hash':
-        HashLog.objects.create(hash_id=hash_id, ip='', hash_name=hash_name)
+        HashLog.objects.create(hash_id=hash_id, ip=ip, hash_name=hash_name)
 
 
 def returnResult(status, msg, data):

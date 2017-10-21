@@ -12,14 +12,14 @@ class KeywordLogManager(models.Manager):
         now = timezone.now()
         time_begin = now - datetime.timedelta(hours=1)
         cursor = self.filter(log_time__gte=time_begin).values('keyword').annotate(
-            pv=Count('ip', distinct=True)).order_by('-pv')
+            pv=Count('keyword', distinct=True)).order_by('-pv')
         return cursor
 
     def top_daily(self):
         now = timezone.now()
-        time_begin = now - datetime.timedelta(days=1)
+        time_begin = now - datetime.timedelta(days=30)
         cursor = self.filter(log_time__gte=time_begin).values('keyword').annotate(
-            pv=Count('ip', distinct=True)).order_by('-pv')
+            pv=Count('keyword', distinct=True)).order_by('-pv')
         return cursor
 
     def latest(self):
@@ -43,16 +43,15 @@ class HashLogManager(models.Manager):
         now = timezone.now()
         time_begin = now - datetime.timedelta(hours=1)
         cursor = self.filter(log_time__gte=time_begin).values('hash_id').annotate(
-            pv=Count('ip', distinct=True)).order_by('-pv')
+            pv=Count('hash_id', distinct=True)).order_by('-pv')
         return cursor
 
     def top_daily(self):
         now = timezone.now()
         time_begin = now - datetime.timedelta(days=30)
         cursor = self.filter(log_time__gte=time_begin).values('hash_id', 'hash_name').annotate(
-            pv=Count('ip', distinct=True)).order_by('-pv')
+            pv=Count('hash_id', distinct=True)).order_by('-pv')
         return cursor
-
 
 class HashLog(models.Model):
     objects = HashLogManager()
