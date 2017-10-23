@@ -17,7 +17,7 @@ class KeywordLogManager(models.Manager):
 
     def top_daily(self):
         now = timezone.now()
-        time_begin = now - datetime.timedelta(days=30)
+        time_begin = now - datetime.timedelta(days=1)
         cursor = self.filter(log_time__gte=time_begin).values('keyword').annotate(
             pv=Count('keyword', distinct=True)).order_by('-pv')
         return cursor
@@ -48,7 +48,7 @@ class HashLogManager(models.Manager):
 
     def top_daily(self):
         now = timezone.now()
-        time_begin = now - datetime.timedelta(days=30)
+        time_begin = now - datetime.timedelta(days=1)
         cursor = self.filter(log_time__gte=time_begin).values('hash_id', 'hash_name').annotate(
             pv=Count('hash_id', distinct=True)).order_by('-pv')
         return cursor

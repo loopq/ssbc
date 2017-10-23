@@ -25,6 +25,20 @@ def jsonindex(request):
     }
     return returnResult('success', 'success', d)
 
+@cache_page(600)
+def json_keyword_index(request):
+    d = {
+        'top_keyword_daily': list(KeywordLog.objects.top_daily())[:50],
+    }
+    return returnResult('success', 'success', d)
+
+@cache_page(600)
+def json_hash_index(request):
+    d = {
+        'top_hash_daily': list(HashLog.objects.top_daily())[:50],
+    }
+    return returnResult('success', 'success', d)
+
 
 def json_log(request):
     log_type = request.GET.get('type')
