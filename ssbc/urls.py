@@ -22,6 +22,7 @@ urlpatterns = [
     url(r'^top/', include('top.urls')),
     url(r'^api/', include('search.urls')),
     url(r'^$', web.views.index, name='index'),
+    url(r'^privacy$', web.views.privacy, name='privacy'),
     url(r'^info/(\d{1,10})$', web.views.hash, name='hash'),
     url(r'^json_info/(\d{1,10})$', web.views.jsonhash, name='jsonhash'),
     url(r'^info/(.{40})$', web.views.hash_old),

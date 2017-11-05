@@ -41,6 +41,11 @@ def index(request):
     return render(request, 'index.html', {'reclist': reclist})
 
 
+@cache_page(3600 * 2)
+def privacy(request):
+    return render(request, 'privacy.html')
+
+
 # 详情
 @cache_page(3600 * 2)
 def hash(request, h):
