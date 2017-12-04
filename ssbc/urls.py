@@ -17,6 +17,7 @@ from django.conf.urls import include, url
 from django.contrib import admin
 
 import web.views
+import top.views
 
 urlpatterns = [
     url(r'^top/', include('top.urls')),
@@ -34,5 +35,6 @@ urlpatterns = [
     url(r'^list/(.+?)/(\d*)$', web.views.search_old),
     url(r'^howto/$', web.views.howto, name='howto'),
     url(r'^admin/', include(admin.site.urls)),
-    url(r'^getVersion$', web.views.get_version, name='getVersion'),
+    url(r'^getVersion/$', web.views.get_version, name='getVersion'),
+    url(r'^three_days_query/$', top.views.three_days_query, name='three_days_query'),
 ]

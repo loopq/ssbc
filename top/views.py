@@ -25,12 +25,14 @@ def jsonindex(request):
     }
     return returnResult('success', 'success', d)
 
+
 @cache_page(600)
 def json_keyword_index(request):
     d = {
         'top_keyword_daily': list(KeywordLog.objects.top_daily())[:50],
     }
     return returnResult('success', 'success', d)
+
 
 @cache_page(600)
 def json_hash_index(request):
@@ -64,6 +66,13 @@ def json_into_db(log_type, keyword='', hash_id='', hash_name=''):
         KeywordLog.objects.create(keyword=keyword, ip=ip)
     elif log_type == 'hash':
         HashLog.objects.create(hash_id=hash_id, ip=ip, hash_name=hash_name)
+
+
+def three_days_query(request):
+    d = {
+        'top_keyword_daily': KeywordLog.objects.three_days_query(),
+    }
+    return render(request, 'top_three.html', d)
 
 
 def returnResult(status, msg, data):
